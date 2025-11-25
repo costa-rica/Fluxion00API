@@ -1,9 +1,37 @@
 # Fluxion00API
 
-Fluxion is an agentic system that connects a chat inteface with LLMs that have access to a project's database and other resources.
+Fluxion00API is an adaptive agent framework that powers a chat interface connected to LLMs with direct access to project databases and documents. It provides a modular, high‑performance backend for building intelligent, context‑aware systems that can query data, interpret resources, and respond in real time.
 
-- FastAPI
-- SQLite
+## Purpose
+
+Fluxion00API provides a unified backend for adaptive agents that can query databases, interpret project documents, and generate intelligent responses through a chat interface.
+
+## High‑Level Architecture
+
+The system consists of a FastAPI backend with WebSocket chat endpoints, an agent layer that routes requests to tools, and a modular knowledge base that accesses databases and documents through interchangeable adapters.
+
+## Tech Stack Summary
+
+- Python 3.x
+- FastAPI (async)
+- Raw SQL or SQLAlchemy Core
+- OpenAI API + local Ollama (Mistral:instruction) LLM provider switching
+
+## Development Constraints
+
+- Versioning begins at `00`
+- Agents live inside Fluxion00API for this version
+- Internal minimal UI allowed for development testing
+- All SQL query functions must include automated tests
+- LLM providers must be swappable via configuration
+
+## Goals for Version 00
+
+- Implement chat endpoint with WebSocket support
+- Build initial agent layer with modular knowledge adapters
+- Add raw SQL query utilities with tests
+- Support switching between OpenAI and local Ollama
+- Provide minimal internal chat UI for development
 
 ## .env
 
@@ -13,9 +41,12 @@ PATH_TO_DATABASE=/Users/nick/Documents/_databases/Fluxion00API
 NAME_DB=fluxion00.db
 PATH_TO_PYTHON_VENV=/Users/nick/Documents/_environments/fluxion
 PATH_TO_DOCUMENTS=/Users/nick/Documents/_project_resources/Fluxion00API/docs_for_agent
+URL_BASE_OLLAMA=https://fell-st-ollama.dashanddata.com
+KEY_OLLAMA=SECRET_KEY
+URL_BASE_OPENAI=https://api.openai.com/v1
+KEY_OPENAI=SECRET_KEY
 ```
 
 ## References
 
-- [REQUIREMENTS.md](docs/REQUIREMENTS.md): This document has the project requirements for this specific project.
 - [DATABASE_OVERVIEW.md](docs/DATABASE_OVERVIEW.md): This document has the database overview for this specific project.
