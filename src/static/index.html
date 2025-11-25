@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fluxion00API - Chat Interface</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 Fluxion00API</h1>
+            <p class="subtitle">AI Agent with Database Access</p>
+            <div class="status">
+                <span id="connection-status" class="status-badge disconnected">Disconnected</span>
+                <button id="clear-btn" class="btn-secondary">Clear History</button>
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div id="chat-messages" class="chat-messages">
+                <!-- Messages will appear here -->
+            </div>
+
+            <div id="typing-indicator" class="typing-indicator" style="display: none;">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <textarea
+                id="message-input"
+                placeholder="Ask me about approved articles..."
+                rows="1"
+            ></textarea>
+            <button id="send-btn" class="btn-primary">Send</button>
+        </div>
+
+        <div class="info">
+            <details>
+                <summary>Available Commands</summary>
+                <ul>
+                    <li><strong>Count articles:</strong> "How many articles are approved?"</li>
+                    <li><strong>Search:</strong> "Find articles about safety"</li>
+                    <li><strong>Date range:</strong> "Show articles from November 2025"</li>
+                    <li><strong>By user:</strong> "Get articles approved by user 1"</li>
+                    <li><strong>List:</strong> "List 5 recent articles"</li>
+                </ul>
+            </details>
+        </div>
+    </div>
+
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>

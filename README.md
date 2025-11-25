@@ -20,11 +20,19 @@ KEY_OPENAI=SECRET_KEY
 
 - [DATABASE_OVERVIEW.md](docs/DATABASE_OVERVIEW.md): This document has the database overview for this specific project.
 
-## Run tests
+## Quick Start
 
-1. activate venv `source /Users/nick/Documents/_environments/fluxion/bin/activate`
-2. database: `python test_queries.py`
-3. ollama: `python test_ollama.py`
+1. Activate virtual environment: `source /Users/nick/Documents/_environments/fluxion/bin/activate`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Start the server: `python run.py`
+4. Open your browser to: `http://localhost:8000`
+
+## Run Tests
+
+1. Activate venv: `source /Users/nick/Documents/_environments/fluxion/bin/activate`
+2. Database queries: `python test_queries.py`
+3. Ollama integration: `python test_ollama.py`
+4. Agent system: `python test_agent.py`
 
 ## Development
 
