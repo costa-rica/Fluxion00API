@@ -1,0 +1,160 @@
+# Ollama Reference
+
+This docuemnt has some information about the Ollama API that is available for this project.
+
+## chat no streaming
+
+### request example
+
+```
+curl -i \
+  -H "X-API-Key: KEY_OLLAMA" \
+  -X POST URL_BASE_OLLAMA/api/generate \
+  -d '{
+    "model": "mistral:instruct",
+    "prompt": "Hello!",
+    "stream": false
+  }'
+```
+
+#### Environmental Variables
+
+- URL_BASE_OLLAMA=https://fell-st-ollama.dashanddata.com
+- KEY_OLLAMA=SECRET_KEY
+
+### response example
+
+```
+{
+    "model": "mistral:instruct",
+    "created_at": "2025-11-25T18:25:25.180266Z",
+    "response": " Hello! How can I help you today? Do you have a specific question or topic in mind that you'd like to discuss or learn about? I'm here to assist you with any questions you might have.\n\nIf you need some suggestions, you could ask me about programming, technology, science, literature, movies, music, and many more subjects. I can also help you with general information, explain concepts, find interesting facts, or even just have a friendly chat! Let's get started whenever you're ready. 😊",
+    "done": true,
+    "done_reason": "stop",
+    "context": [
+        3,
+        29473,
+        23325,
+        29576,
+        4,
+        29473,
+        23325,
+        29576,
+        2370,
+        1309,
+        1083,
+        2084,
+        1136,
+        3922,
+        29572,
+        3146,
+        1136,
+        1274,
+        1032,
+        3716,
+        3764,
+        1210,
+        9835,
+        1065,
+        3041,
+        1137,
+        1136,
+        29510,
+        29483,
+        1505,
+        1066,
+        4110,
+        1210,
+        3590,
+        1452,
+        29572,
+        1083,
+        29510,
+        29487,
+        2004,
+        1066,
+        6799,
+        1136,
+        1163,
+        1475,
+        4992,
+        1136,
+        2427,
+        1274,
+        29491,
+        781,
+        781,
+        4149,
+        1136,
+        1695,
+        1509,
+        18046,
+        29493,
+        1136,
+        1597,
+        2228,
+        1296,
+        1452,
+        17060,
+        29493,
+        6282,
+        29493,
+        7459,
+        29493,
+        12122,
+        29493,
+        11383,
+        29493,
+        4195,
+        29493,
+        1072,
+        2055,
+        1448,
+        15343,
+        29491,
+        1083,
+        1309,
+        1603,
+        2084,
+        1136,
+        1163,
+        3720,
+        2639,
+        29493,
+        8050,
+        17350,
+        29493,
+        2068,
+        6621,
+        12180,
+        29493,
+        1210,
+        1787,
+        1544,
+        1274,
+        1032,
+        10899,
+        11474,
+        29576,
+        3937,
+        29510,
+        29481,
+        1393,
+        3542,
+        12094,
+        1136,
+        29510,
+        1035,
+        5081,
+        29491,
+        29473,
+        31232
+    ],
+    "total_duration": 8161507708,
+    "load_duration": 74831917,
+    "prompt_eval_count": 6,
+    "prompt_eval_duration": 126827750,
+    "eval_count": 112,
+    "eval_duration": 7850294500
+}
+```
