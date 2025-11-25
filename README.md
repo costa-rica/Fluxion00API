@@ -22,8 +22,9 @@ KEY_OPENAI=SECRET_KEY
 
 ## Run tests
 
-1. activate venv
-2. run `python test_queries.py`
+1. activate venv `source /Users/nick/Documents/_environments/fluxion/bin/activate`
+2. database: `python test_queries.py`
+3. ollama: `python test_ollama.py`
 
 ## Development
 
