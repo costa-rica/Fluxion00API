@@ -6,6 +6,7 @@ Fluxion00API is an adaptive agent framework that powers a chat interface connect
 
 ```
 NAME_APP=Fluxion00API
+JWT_SECRET=SECRET_KEY
 PATH_TO_DATABASE=/Users/nick/Documents/_databases/Fluxion00API
 NAME_DB=fluxion00.db
 PATH_TO_PYTHON_VENV=/Users/nick/Documents/_environments/fluxion

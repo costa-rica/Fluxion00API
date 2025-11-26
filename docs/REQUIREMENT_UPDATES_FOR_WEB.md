@@ -6,7 +6,36 @@ This file contains the details of the new reuqirements needed to facilitate the 
 
 ### Login and authentication
 
-The Fluxion00Web will have a login page. We need to have a login route that uses the same codeing and decoding method as the News Nexus API (NN API), which is an ExperssJS app written in TypeScript. The NN API uses `const jwt = require("jsonwebtoken");` and specifically `const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET);` to create a token.
+**Authentication Flow**:
+1. Fluxion00Web handles login via News Nexus API (NN API)
+2. NN API returns JWT token after successful authentication
+3. Fluxion00API verifies and decodes tokens (does NOT create tokens or handle passwords)
+
+**JWT Token Specification**:
+- **Creation**: Handled by NN API (ExpressJS/TypeScript) using `jsonwebtoken` library
+- **Algorithm**: HS256
+- **Secret**: `JWT_SECRET` environment variable (shared between NN API and Fluxion00API)
+- **Payload Structure**: `{ id: <user_id> }` (minimal, no expiration or other claims)
+- **Verification**: Fluxion00API uses PyJWT library to decode and verify signature
+
+**WebSocket Authentication**:
+- **Endpoint**: `/ws/{client_id}?token=<jwt>`
+- **Token Format**: JWT passed as query parameter
+- **Middleware Requirements**:
+  1. Extract token from query parameter
+  2. Verify JWT signature using `JWT_SECRET`
+  3. Decode payload to extract `user.id`
+  4. Query Users table to verify user exists and is valid
+  5. Reject connection if token invalid or user not found
+  6. Attach user info to WebSocket connection context
+
+**Endpoint Protection**:
+- `/ws/{client_id}` - **Requires authentication** (JWT token mandatory)
+- `/health` - **Public** (no authentication)
+- `/api/info` - **Public** (no authentication)
+- Future endpoints - Authentication requirements TBD
+
+**No Backward Compatibility**: All WebSocket connections must provide valid JWT token. Previous unauthenticated access is removed.
 
 ### Chat status-log feature
 
