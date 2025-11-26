@@ -132,13 +132,15 @@ Be concise, accurate, and helpful. When presenting article results, format them 
         )
 
         try:
-            # Directly execute SQL tool
+            # Directly execute SQL tool with agent's LLM provider
             logger.info(f"[TOOL] Executing: execute_custom_sql (forced)")
             logger.info(f"[TOOL] Question: {truncate_text(user_question)}")
 
-            tool_result = await self.registry.execute_tool(
-                "execute_custom_sql",
-                question=user_question
+            # Call SQL tool function directly to pass llm_provider
+            from .tools_sql import execute_custom_sql_query
+            tool_result = await execute_custom_sql_query(
+                question=user_question,
+                llm_provider=self.llm  # Pass agent's LLM provider
             )
 
             # Log tool result
@@ -223,10 +225,18 @@ Be concise, accurate, and helpful. When presenting article results, format them 
             logger.info(f"[TOOL] Arguments: {args_preview}")
 
             # Execute the tool
-            tool_result = await self.registry.execute_tool(
-                tool_call["tool_name"],
-                **tool_call["arguments"]
-            )
+            # Special handling for SQL tool to pass LLM provider
+            if tool_call["tool_name"] == "execute_custom_sql":
+                from .tools_sql import execute_custom_sql_query
+                tool_result = await execute_custom_sql_query(
+                    llm_provider=self.llm,  # Pass agent's LLM provider
+                    **tool_call["arguments"]
+                )
+            else:
+                tool_result = await self.registry.execute_tool(
+                    tool_call["tool_name"],
+                    **tool_call["arguments"]
+                )
 
             # Log tool result
             if tool_result["success"]:

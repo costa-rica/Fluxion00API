@@ -69,7 +69,10 @@ def extract_sql_from_llm_response(response: str) -> Optional[str]:
     return None
 
 
-async def execute_custom_sql_query(question: str) -> Dict[str, Any]:
+async def execute_custom_sql_query(
+    question: str,
+    llm_provider: Optional['BaseLLMProvider'] = None
+) -> Dict[str, Any]:
     """
     Generate and execute a custom SQL query based on natural language question.
 
@@ -82,6 +85,7 @@ async def execute_custom_sql_query(question: str) -> Dict[str, Any]:
 
     Args:
         question: Natural language question about the database
+        llm_provider: LLM provider to use for SQL generation (uses Ollama default if not provided)
 
     Returns:
         Dict with:
@@ -92,6 +96,7 @@ async def execute_custom_sql_query(question: str) -> Dict[str, Any]:
             - security_info (dict): Security validation details
     """
     from src.llm.ollama_client import get_ollama_provider
+    from src.llm.base import BaseLLMProvider
 
     try:
         # Load SQL schema
@@ -122,8 +127,8 @@ INSTRUCTIONS:
 SQL QUERY:
 """
 
-        # Get LLM response
-        llm = get_ollama_provider()
+        # Use provided LLM provider or default to Ollama
+        llm = llm_provider if llm_provider else get_ollama_provider()
         response = await llm.generate(
             prompt=prompt,
             temperature=0.1,  # Low temperature for precise SQL generation
