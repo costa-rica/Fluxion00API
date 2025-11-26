@@ -6,7 +6,7 @@ with the agent system.
 """
 
 import json
-from typing import Dict, Set
+from typing import Dict, Set, Any
 from fastapi import WebSocket, WebSocketDisconnect
 from src.agent import Agent
 
@@ -22,19 +22,22 @@ class ConnectionManager:
         """Initialize the connection manager."""
         self.active_connections: Dict[str, WebSocket] = {}
         self.agents: Dict[str, Agent] = {}
+        self.users: Dict[str, Dict[str, Any]] = {}
 
-    async def connect(self, websocket: WebSocket, client_id: str, agent: Agent):
+    async def connect(self, websocket: WebSocket, client_id: str, agent: Agent, user: Dict[str, Any]):
         """
-        Accept a new WebSocket connection.
+        Accept a new WebSocket connection with authenticated user.
 
         Args:
             websocket: WebSocket connection
             client_id: Unique client identifier
             agent: Agent instance for this connection
+            user: Authenticated user data from JWT
         """
         await websocket.accept()
         self.active_connections[client_id] = websocket
         self.agents[client_id] = agent
+        self.users[client_id] = user
 
     def disconnect(self, client_id: str):
         """
@@ -47,6 +50,8 @@ class ConnectionManager:
             del self.active_connections[client_id]
         if client_id in self.agents:
             del self.agents[client_id]
+        if client_id in self.users:
+            del self.users[client_id]
 
     async def send_message(self, client_id: str, message: Dict):
         """
@@ -83,6 +88,18 @@ class ConnectionManager:
             Agent: Agent instance for the client
         """
         return self.agents.get(client_id)
+
+    def get_user(self, client_id: str) -> Dict[str, Any]:
+        """
+        Get the authenticated user for a specific client.
+
+        Args:
+            client_id: Client identifier
+
+        Returns:
+            Dict: User data from JWT authentication
+        """
+        return self.users.get(client_id)
 
     def get_connection_count(self) -> int:
         """
@@ -176,24 +193,27 @@ async def websocket_endpoint(
     websocket: WebSocket,
     client_id: str,
     manager: ConnectionManager,
-    agent: Agent
+    agent: Agent,
+    user: Dict[str, Any]
 ):
     """
-    WebSocket endpoint handler.
+    WebSocket endpoint handler with authenticated user.
 
     Args:
         websocket: WebSocket connection
         client_id: Unique client identifier
         manager: Connection manager
         agent: Agent instance for this connection
+        user: Authenticated user data from JWT
     """
-    await manager.connect(websocket, client_id, agent)
+    await manager.connect(websocket, client_id, agent, user)
 
     try:
-        # Send welcome message
+        # Send welcome message with username
+        username = user.get('username', 'User')
         await manager.send_message(client_id, {
             "type": "system",
-            "content": "Connected to Fluxion00API. How can I help you today?"
+            "content": f"Welcome {username}! Connected to Fluxion00API. How can I help you today?"
         })
 
         # Message loop
