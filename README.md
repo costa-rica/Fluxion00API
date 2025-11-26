@@ -18,7 +18,7 @@ KEY_OPENAI=SECRET_KEY
 
 ## References
 
-- [DATABASE_OVERVIEW.md](docs/DATABASE_OVERVIEW.md): This document has the database overview for this specific project.
+- [SQL_SCHEMA.md](docs/SQL_SCHEMA.md): This document has the database schema for this specific project.
 
 ## Quick Start
 
