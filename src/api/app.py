@@ -128,7 +128,7 @@ async def startup_event():
     print(f"Ollama URL: {os.getenv('URL_BASE_OLLAMA')}")
     print(f"Static files: {STATIC_DIR}")
     print("="*60)
-    print("Server ready! Open http://localhost:8000 in your browser")
+    print(f"Server ready! Open http://localhost:{int(os.getenv('PORT', 8000))} in your browser")
     print("="*60)
 
 
