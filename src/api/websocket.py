@@ -9,6 +9,7 @@ import json
 from typing import Dict, Set, Any
 from fastapi import WebSocket, WebSocketDisconnect
 from src.agent import Agent
+from src.utils import logger
 
 
 class ConnectionManager:
@@ -137,7 +138,15 @@ async def handle_chat_message(
         })
         return
 
+    # Get user context for logging
+    user = manager.get_user(client_id)
+    username = user.get('username', 'Unknown') if user else 'Unknown'
+
     if message_type == "user_message":
+        # Log user message
+        from src.utils import truncate_text
+        logger.info(f"[AGENT] {username} (client_id: {client_id}) | Message: \"{truncate_text(content)}\"")
+
         # Send acknowledgment
         await manager.send_message(client_id, {
             "type": "user_echo",
@@ -154,6 +163,9 @@ async def handle_chat_message(
             # Process message with agent
             response = await agent.process_message(content)
 
+            # Log agent response
+            logger.info(f"[AGENT] {username} (client_id: {client_id}) | Response sent | Length: {len(response)} chars")
+
             # Send agent response
             await manager.send_message(client_id, {
                 "type": "agent_message",
@@ -162,6 +174,7 @@ async def handle_chat_message(
 
         except Exception as e:
             # Send error message
+            logger.error(f"[AGENT] {username} (client_id: {client_id}) | Error: {str(e)}")
             await manager.send_message(client_id, {
                 "type": "error",
                 "content": f"Error processing message: {str(e)}"
@@ -208,9 +221,13 @@ async def websocket_endpoint(
     """
     await manager.connect(websocket, client_id, agent, user)
 
+    # Log connection
+    username = user.get('username', 'User')
+    user_id = user.get('id', 'Unknown')
+    logger.info(f"[WEBSOCKET] User connected: {username} (ID: {user_id}, client_id: {client_id})")
+
     try:
         # Send welcome message with username
-        username = user.get('username', 'User')
         await manager.send_message(client_id, {
             "type": "system",
             "content": f"Welcome {username}! Connected to Fluxion00API. How can I help you today?"
@@ -231,9 +248,9 @@ async def websocket_endpoint(
                 })
 
     except WebSocketDisconnect:
+        logger.info(f"[WEBSOCKET] User disconnected: {username} (client_id: {client_id})")
         manager.disconnect(client_id)
-        print(f"Client {client_id} disconnected")
 
     except Exception as e:
-        print(f"Error in WebSocket connection for {client_id}: {e}")
+        logger.error(f"[WEBSOCKET] Connection error for {username} (client_id: {client_id}): {e}")
         manager.disconnect(client_id)

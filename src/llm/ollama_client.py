@@ -8,6 +8,7 @@ import os
 import httpx
 from typing import List, Optional, AsyncIterator, Dict, Any
 from .base import BaseLLMProvider, LLMMessage, LLMResponse
+from src.utils import logger, truncate_text
 
 
 class OllamaProvider(BaseLLMProvider):
@@ -94,6 +95,10 @@ class OllamaProvider(BaseLLMProvider):
         # Combine system prompt with user prompt if provided
         full_prompt = self.format_prompt_with_system(prompt, system_prompt)
 
+        # Log LLM call
+        logger.info(f"[LLM] Making call to Ollama...")
+        logger.info(f"[LLM] Prompt length: {len(full_prompt)} chars | Preview: \"{truncate_text(full_prompt)}\"")
+
         # Build request payload
         payload = {
             "model": model,
@@ -122,7 +127,7 @@ class OllamaProvider(BaseLLMProvider):
             data = response.json()
 
         # Parse response
-        return LLMResponse(
+        llm_response = LLMResponse(
             content=data.get("response", ""),
             model=data.get("model", model),
             finish_reason=data.get("done_reason"),
@@ -133,6 +138,11 @@ class OllamaProvider(BaseLLMProvider):
             },
             raw_response=data
         )
+
+        # Log response
+        logger.info(f"[LLM] Response length: {len(llm_response.content)} chars | Preview: \"{truncate_text(llm_response.content)}\"")
+
+        return llm_response
 
     async def chat(
         self,

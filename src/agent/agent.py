@@ -9,6 +9,7 @@ import json
 import re
 from typing import List, Dict, Any, Optional
 from src.llm import BaseLLMProvider, LLMMessage
+from src.utils import logger, truncate_text
 from .tools import ToolRegistry, get_tool_registry
 from .tools_articles import register_article_tools, format_articles_list
 from .tools_sql import register_sql_tools
@@ -142,11 +143,24 @@ Be concise, accurate, and helpful. When presenting article results, format them 
         tool_call = self._parse_tool_call(response_text)
 
         if tool_call:
+            # Log tool execution
+            args_preview = truncate_text(json.dumps(tool_call["arguments"]))
+            logger.info(f"[TOOL] Executing: {tool_call['tool_name']}")
+            logger.info(f"[TOOL] Arguments: {args_preview}")
+
             # Execute the tool
             tool_result = await self.registry.execute_tool(
                 tool_call["tool_name"],
                 **tool_call["arguments"]
             )
+
+            # Log tool result
+            if tool_result["success"]:
+                # Calculate output length based on result type
+                result_data = str(tool_result.get("data", ""))
+                logger.info(f"[TOOL] Success | Output length: {len(result_data)} chars | Preview: \"{truncate_text(result_data)}\"")
+            else:
+                logger.info(f"[TOOL] Failed | Error: {tool_result.get('error', 'Unknown error')}")
 
             # Format tool result for LLM
             if tool_result["success"]:
