@@ -109,6 +109,80 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 
         return None
 
+    async def process_sql_query(self, user_question: str) -> str:
+        """
+        Process a user question directly using Text-to-SQL tool.
+
+        This bypasses the normal tool selection and directly invokes the
+        execute_custom_sql tool, forcing SQL generation for the query.
+
+        Args:
+            user_question: User's natural language question
+
+        Returns:
+            str: Agent's response with SQL results
+
+        Example:
+            >>> agent = Agent(llm_provider)
+            >>> response = await agent.process_sql_query("Show articles from California")
+        """
+        # Add user message to history
+        self.conversation_history.append(
+            LLMMessage(role="user", content=user_question)
+        )
+
+        try:
+            # Directly execute SQL tool
+            logger.info(f"[TOOL] Executing: execute_custom_sql (forced)")
+            logger.info(f"[TOOL] Question: {truncate_text(user_question)}")
+
+            tool_result = await self.registry.execute_tool(
+                "execute_custom_sql",
+                question=user_question
+            )
+
+            # Log tool result
+            if tool_result["success"]:
+                result_data = str(tool_result.get("data", ""))
+                logger.info(f"[TOOL] Success | Output length: {len(result_data)} chars")
+            else:
+                logger.info(f"[TOOL] Failed | Error: {tool_result.get('error', 'Unknown error')}")
+
+            # Format SQL results
+            from .tools_sql import format_sql_results
+            formatted_data = format_sql_results(tool_result)
+
+            # Send formatted results to LLM for natural language response
+            messages = [
+                LLMMessage(role="system", content=self.system_prompt),
+                *self.conversation_history,
+                LLMMessage(
+                    role="user",
+                    content=f"SQL query results:\n\n{formatted_data}\n\nPlease provide a clear, natural language summary of these results for the user."
+                )
+            ]
+
+            final_response = await self.llm.chat(messages, temperature=0.3)
+            response_text = final_response.content
+
+            # Add assistant response to history
+            self.conversation_history.append(
+                LLMMessage(role="assistant", content=response_text)
+            )
+
+            return response_text
+
+        except Exception as e:
+            error_msg = f"Error executing SQL query: {str(e)}"
+            logger.error(f"[TOOL] {error_msg}")
+
+            # Add error to history
+            self.conversation_history.append(
+                LLMMessage(role="assistant", content=error_msg)
+            )
+
+            return error_msg
+
     async def process_message(self, user_message: str) -> str:
         """
         Process a user message and generate a response.

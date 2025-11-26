@@ -129,6 +129,7 @@ async def handle_chat_message(
     """
     message_type = message.get("type")
     content = message.get("content", "")
+    mode = message.get("mode", "auto")  # Get mode from message payload
 
     agent = manager.get_agent(client_id)
     if not agent:
@@ -143,9 +144,22 @@ async def handle_chat_message(
     username = user.get('username', 'Unknown') if user else 'Unknown'
 
     if message_type == "user_message":
+        # Check for /sql command prefix
+        use_sql_mode = False
+        sql_query = content
+
+        if content.strip().startswith('/sql'):
+            use_sql_mode = True
+            sql_query = content.strip()[4:].strip()  # Remove '/sql ' prefix
+            logger.info(f"[AGENT] {username} (client_id: {client_id}) | SQL mode triggered by /sql prefix")
+        elif mode == "sql":
+            use_sql_mode = True
+            logger.info(f"[AGENT] {username} (client_id: {client_id}) | SQL mode triggered by mode=sql")
+
         # Log user message
         from src.utils import truncate_text
-        logger.info(f"[AGENT] {username} (client_id: {client_id}) | Message: \"{truncate_text(content)}\"")
+        mode_indicator = "[SQL MODE] " if use_sql_mode else ""
+        logger.info(f"[AGENT] {mode_indicator}{username} (client_id: {client_id}) | Message: \"{truncate_text(sql_query if use_sql_mode else content)}\"")
 
         # Send acknowledgment
         await manager.send_message(client_id, {
@@ -160,8 +174,11 @@ async def handle_chat_message(
         })
 
         try:
-            # Process message with agent
-            response = await agent.process_message(content)
+            # Process message with agent (direct SQL or normal mode)
+            if use_sql_mode:
+                response = await agent.process_sql_query(sql_query)
+            else:
+                response = await agent.process_message(content)
 
             # Log agent response
             logger.info(f"[AGENT] {username} (client_id: {client_id}) | Response sent | Length: {len(response)} chars")

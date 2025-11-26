@@ -140,6 +140,35 @@ Send user message to agent for processing.
 }
 ```
 
+**Optional Fields**:
+- `mode` (string, optional) - Processing mode: `"auto"` (default) or `"sql"` (force Text-to-SQL)
+
+**SQL Mode Example**:
+```json
+{
+  "type": "user_message",
+  "content": "Show articles published in California",
+  "mode": "sql"
+}
+```
+
+**Alternative: Command Prefix**
+Users can also trigger SQL mode by prefixing messages with `/sql`:
+
+```json
+{
+  "type": "user_message",
+  "content": "/sql Show articles published in California"
+}
+```
+
+When SQL mode is active (via `mode: "sql"` or `/sql` prefix):
+- Bypasses normal tool selection
+- Directly invokes Text-to-SQL engine
+- Generates custom SQL query from natural language
+- Executes query with security validation
+- Returns results in natural language
+
 **Response Flow**:
 1. `user_echo` - Acknowledges message receipt
 2. `typing` - Indicates agent is processing (content: true)
