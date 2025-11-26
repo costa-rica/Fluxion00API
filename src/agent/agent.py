@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from src.llm import BaseLLMProvider, LLMMessage
 from .tools import ToolRegistry, get_tool_registry
 from .tools_articles import register_article_tools, format_articles_list
+from .tools_sql import register_sql_tools
 
 
 class Agent:
@@ -42,6 +43,7 @@ class Agent:
         # Register article tools if not already registered
         if not self.registry.list_tools():
             register_article_tools(self.registry)
+            register_sql_tools(self.registry)
 
         self.system_prompt = system_prompt or self._default_system_prompt()
 
@@ -148,21 +150,27 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 
             # Format tool result for LLM
             if tool_result["success"]:
-                data = tool_result["data"]
-
-                # Special formatting for article lists
-                if isinstance(data, list) and data and isinstance(data[0], dict):
-                    if "headlineForPdfReport" in data[0]:
-                        formatted_data = format_articles_list(data)
-                    else:
-                        formatted_data = json.dumps(data, indent=2)
-                elif isinstance(data, dict) and "headlineForPdfReport" in data:
-                    from .tools_articles import format_article_for_display
-                    formatted_data = format_article_for_display(data)
+                # Special formatting for SQL tool results
+                if tool_call["tool_name"] == "execute_custom_sql":
+                    from .tools_sql import format_sql_results
+                    formatted_data = format_sql_results(tool_result)
+                    tool_result_message = f"Tool '{tool_call['tool_name']}' executed successfully.\n\n{formatted_data}"
                 else:
-                    formatted_data = str(data)
+                    data = tool_result["data"]
 
-                tool_result_message = f"Tool '{tool_call['tool_name']}' executed successfully.\n\nResult:\n{formatted_data}"
+                    # Special formatting for article lists
+                    if isinstance(data, list) and data and isinstance(data[0], dict):
+                        if "headlineForPdfReport" in data[0]:
+                            formatted_data = format_articles_list(data)
+                        else:
+                            formatted_data = json.dumps(data, indent=2)
+                    elif isinstance(data, dict) and "headlineForPdfReport" in data:
+                        from .tools_articles import format_article_for_display
+                        formatted_data = format_article_for_display(data)
+                    else:
+                        formatted_data = str(data)
+
+                    tool_result_message = f"Tool '{tool_call['tool_name']}' executed successfully.\n\nResult:\n{formatted_data}"
             else:
                 tool_result_message = f"Tool '{tool_call['tool_name']}' failed: {tool_result['error']}"
 
@@ -250,7 +258,8 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 # Factory function for easy agent creation
 def create_agent(
     llm_provider: BaseLLMProvider,
-    include_article_tools: bool = True
+    include_article_tools: bool = True,
+    include_sql_tools: bool = True
 ) -> Agent:
     """
     Factory function to create an agent instance.
@@ -258,6 +267,7 @@ def create_agent(
     Args:
         llm_provider: LLM provider instance
         include_article_tools: Whether to register article tools
+        include_sql_tools: Whether to register Text-to-SQL fallback tool
 
     Returns:
         Agent: Configured agent instance
@@ -266,5 +276,8 @@ def create_agent(
 
     if include_article_tools:
         register_article_tools(registry)
+
+    if include_sql_tools:
+        register_sql_tools(registry)
 
     return Agent(llm_provider=llm_provider, tool_registry=registry)
