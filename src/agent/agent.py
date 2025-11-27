@@ -109,7 +109,11 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 
         return None
 
-    async def process_sql_query(self, user_question: str) -> str:
+    async def process_sql_query(
+        self,
+        user_question: str,
+        progress_callback: Optional[callable] = None
+    ) -> str:
         """
         Process a user question directly using Text-to-SQL tool.
 
@@ -118,6 +122,7 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 
         Args:
             user_question: User's natural language question
+            progress_callback: Optional async callback(stage, message, details) for progress updates
 
         Returns:
             str: Agent's response with SQL results
@@ -132,6 +137,14 @@ Be concise, accurate, and helpful. When presenting article results, format them 
         )
 
         try:
+            # Send progress: Generating SQL
+            if progress_callback:
+                await progress_callback(
+                    "sql_generation",
+                    "Generating SQL query from your question...",
+                    {"question": truncate_text(user_question)}
+                )
+
             # Directly execute SQL tool with agent's LLM provider
             logger.info(f"[TOOL] Executing: execute_custom_sql (forced)")
             logger.info(f"[TOOL] Question: {truncate_text(user_question)}")
@@ -147,12 +160,36 @@ Be concise, accurate, and helpful. When presenting article results, format them 
             if tool_result["success"]:
                 result_data = str(tool_result.get("data", ""))
                 logger.info(f"[TOOL] Success | Output length: {len(result_data)} chars")
+
+                # Send progress: SQL executed successfully
+                if progress_callback:
+                    row_count = tool_result.get('row_count', 'unknown')
+                    await progress_callback(
+                        "sql_executed",
+                        f"SQL query executed successfully. Found {row_count} result(s).",
+                        {"sql": tool_result.get("sql", ""), "row_count": row_count}
+                    )
             else:
                 logger.info(f"[TOOL] Failed | Error: {tool_result.get('error', 'Unknown error')}")
+
+                # Send progress: SQL execution failed
+                if progress_callback:
+                    await progress_callback(
+                        "sql_error",
+                        f"SQL execution failed: {tool_result.get('error', 'Unknown error')}",
+                        {"error": tool_result.get("error")}
+                    )
 
             # Format SQL results
             from .tools_sql import format_sql_results
             formatted_data = format_sql_results(tool_result)
+
+            # Send progress: Generating natural language response
+            if progress_callback:
+                await progress_callback(
+                    "llm_summarizing",
+                    "Generating natural language summary of results..."
+                )
 
             # Send formatted results to LLM for natural language response
             messages = [
@@ -185,7 +222,11 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 
             return error_msg
 
-    async def process_message(self, user_message: str) -> str:
+    async def process_message(
+        self,
+        user_message: str,
+        progress_callback: Optional[callable] = None
+    ) -> str:
         """
         Process a user message and generate a response.
 
@@ -193,6 +234,7 @@ Be concise, accurate, and helpful. When presenting article results, format them 
 
         Args:
             user_message: User's message
+            progress_callback: Optional async callback(stage, message, details) for progress updates
 
         Returns:
             str: Agent's response
@@ -205,6 +247,14 @@ Be concise, accurate, and helpful. When presenting article results, format them 
         self.conversation_history.append(
             LLMMessage(role="user", content=user_message)
         )
+
+        # Send progress: Analyzing question
+        if progress_callback:
+            await progress_callback(
+                "analyzing",
+                "Analyzing your question...",
+                {"message": truncate_text(user_message)}
+            )
 
         # Get initial LLM response
         messages = [
@@ -223,6 +273,14 @@ Be concise, accurate, and helpful. When presenting article results, format them 
             args_preview = truncate_text(json.dumps(tool_call["arguments"]))
             logger.info(f"[TOOL] Executing: {tool_call['tool_name']}")
             logger.info(f"[TOOL] Arguments: {args_preview}")
+
+            # Send progress: Tool execution started
+            if progress_callback:
+                await progress_callback(
+                    "tool_execution",
+                    f"Executing tool: {tool_call['tool_name']}",
+                    {"tool": tool_call['tool_name'], "arguments": tool_call["arguments"]}
+                )
 
             # Execute the tool
             # Special handling for SQL tool to pass LLM provider
@@ -243,8 +301,24 @@ Be concise, accurate, and helpful. When presenting article results, format them 
                 # Calculate output length based on result type
                 result_data = str(tool_result.get("data", ""))
                 logger.info(f"[TOOL] Success | Output length: {len(result_data)} chars | Preview: \"{truncate_text(result_data)}\"")
+
+                # Send progress: Tool execution succeeded
+                if progress_callback:
+                    await progress_callback(
+                        "tool_success",
+                        f"Tool '{tool_call['tool_name']}' executed successfully",
+                        {"tool": tool_call['tool_name'], "output_length": len(result_data)}
+                    )
             else:
                 logger.info(f"[TOOL] Failed | Error: {tool_result.get('error', 'Unknown error')}")
+
+                # Send progress: Tool execution failed
+                if progress_callback:
+                    await progress_callback(
+                        "tool_error",
+                        f"Tool '{tool_call['tool_name']}' failed: {tool_result.get('error', 'Unknown error')}",
+                        {"tool": tool_call['tool_name'], "error": tool_result.get("error")}
+                    )
 
             # Format tool result for LLM
             if tool_result["success"]:
@@ -279,6 +353,13 @@ Be concise, accurate, and helpful. When presenting article results, format them 
             messages.append(
                 LLMMessage(role="user", content=tool_result_message)
             )
+
+            # Send progress: Generating final response
+            if progress_callback:
+                await progress_callback(
+                    "generating_response",
+                    "Generating final response..."
+                )
 
             final_response = await self.llm.chat(messages, temperature=0.3)
             response_text = final_response.content

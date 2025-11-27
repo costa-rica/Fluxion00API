@@ -15,11 +15,13 @@ Health check endpoint for monitoring service status.
 **Authentication:** Not required
 
 **Sample Request**:
+
 ```bash
 curl http://localhost:8000/health
 ```
 
 **Response (200 OK)**:
+
 ```json
 {
   "status": "healthy",
@@ -44,11 +46,13 @@ Returns API metadata including available agent tools, supported providers, and c
 **Authentication:** Not required
 
 **Sample Request**:
+
 ```bash
 curl http://localhost:8000/api/info
 ```
 
 **Response (200 OK)**:
+
 ```json
 {
   "name": "Fluxion00API",
@@ -109,6 +113,7 @@ WebSocket endpoint for real-time chat with LLM agent. Supports conversation hist
 **Connection Examples**:
 
 Default connection (Ollama with mistral:instruct):
+
 ```javascript
 const clientId = crypto.randomUUID();
 const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
@@ -116,6 +121,7 @@ const ws = new WebSocket(`ws://localhost:8000/ws/${clientId}?token=${token}`);
 ```
 
 OpenAI with gpt-4o-mini:
+
 ```javascript
 const clientId = crypto.randomUUID();
 const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...";
@@ -127,6 +133,7 @@ const ws = new WebSocket(
 ```
 
 OpenAI with default model (gpt-4o-mini):
+
 ```javascript
 const ws = new WebSocket(
   `ws://localhost:8000/ws/${clientId}?token=${token}&provider=openai`
@@ -134,6 +141,7 @@ const ws = new WebSocket(
 ```
 
 Custom model (backend passes to LLM API without validation):
+
 ```javascript
 const ws = new WebSocket(
   `ws://localhost:8000/ws/${clientId}?token=${token}&provider=openai&model=gpt-4-turbo`
@@ -141,6 +149,7 @@ const ws = new WebSocket(
 ```
 
 **Error Codes**:
+
 ```
 WebSocket close code 4001: "Authentication required: missing token"
 WebSocket close code 4001: "Authentication failed: Invalid token"
@@ -150,6 +159,7 @@ WebSocket close code 4000: "Provider initialization error: <error details>"
 ```
 
 **Behavior**:
+
 - Each connection creates a new Agent instance with independent conversation history
 - Token must be valid JWT signed with `JWT_SECRET` containing `{ id: <user_id> }`
 - User ID is verified against Users table in database
@@ -164,6 +174,7 @@ WebSocket close code 4000: "Provider initialization error: <error details>"
 ### Client → Server Messages
 
 #### user_message
+
 Send user message to agent for processing.
 
 ```json
@@ -174,9 +185,11 @@ Send user message to agent for processing.
 ```
 
 **Optional Fields**:
+
 - `mode` (string, optional) - Processing mode: `"auto"` (default) or `"sql"` (force Text-to-SQL)
 
 **SQL Mode Example**:
+
 ```json
 {
   "type": "user_message",
@@ -196,6 +209,7 @@ Users can also trigger SQL mode by prefixing messages with `/sql`:
 ```
 
 When SQL mode is active (via `mode: "sql"` or `/sql` prefix):
+
 - Bypasses normal tool selection
 - Directly invokes Text-to-SQL engine
 - Generates custom SQL query from natural language
@@ -203,12 +217,14 @@ When SQL mode is active (via `mode: "sql"` or `/sql` prefix):
 - Returns results in natural language
 
 **Response Flow**:
+
 1. `user_echo` - Acknowledges message receipt
 2. `typing` - Indicates agent is processing (content: true)
 3. `agent_message` - Agent's response
 4. `typing` - Processing complete (content: false)
 
 #### clear_history
+
 Clear conversation history for current connection.
 
 ```json
@@ -218,6 +234,7 @@ Clear conversation history for current connection.
 ```
 
 **Response**:
+
 ```json
 {
   "type": "system",
@@ -226,6 +243,7 @@ Clear conversation history for current connection.
 ```
 
 #### ping
+
 Keep-alive ping message.
 
 ```json
@@ -235,6 +253,7 @@ Keep-alive ping message.
 ```
 
 **Response**:
+
 ```json
 {
   "type": "pong"
@@ -246,6 +265,7 @@ Keep-alive ping message.
 ### Server → Client Messages
 
 #### system
+
 System messages (connection status, notifications).
 
 ```json
@@ -256,6 +276,7 @@ System messages (connection status, notifications).
 ```
 
 #### user_echo
+
 Acknowledges receipt of user message.
 
 ```json
@@ -266,6 +287,7 @@ Acknowledges receipt of user message.
 ```
 
 #### typing
+
 Indicates agent processing status.
 
 ```json
@@ -276,6 +298,7 @@ Indicates agent processing status.
 ```
 
 #### agent_message
+
 Agent's response to user message.
 
 ```json
@@ -286,6 +309,7 @@ Agent's response to user message.
 ```
 
 #### error
+
 Error message from agent or system.
 
 ```json
@@ -295,6 +319,47 @@ Error message from agent or system.
 }
 ```
 
+#### agent_progress
+
+Real-time progress updates showing agent's internal processing stages.
+
+```json
+{
+  "type": "agent_progress",
+  "stage": "tool_execution",
+  "message": "Executing tool: search_approved_articles",
+  "timestamp": 1701234567.89,
+  "details": {
+    "tool": "search_approved_articles",
+    "arguments": { "search_text": "California" }
+  }
+}
+```
+
+**Progress Stages**:
+| Stage | Description |
+|-------|-------------|
+| processing | Initial message processing |
+| analyzing | Analyzing user question |
+| tool_execution | Executing a database tool |
+| tool_success | Tool executed successfully |
+| tool_error | Tool execution failed |
+| sql_generation | Generating SQL query (SQL mode) |
+| sql_executed | SQL query executed successfully |
+| sql_error | SQL execution failed |
+| llm_summarizing | Generating natural language summary |
+| generating_response | Generating final response |
+| completed | Processing completed |
+
+**Progress Message Fields**:
+| Field | Type | Description |
+|-------|------|-------------|
+| type | string | Always "agent_progress" |
+| stage | string | Current processing stage |
+| message | string | Human-readable progress message |
+| timestamp | number | Unix timestamp (seconds since epoch) |
+| details | object | Optional additional details (tool names, arguments, etc.) |
+
 ---
 
 ## Agent Tools
@@ -302,57 +367,72 @@ Error message from agent or system.
 The agent has access to the following database query tools:
 
 ### count_approved_articles
+
 Count articles by approval status.
 
 **Parameters**:
+
 - `is_approved` (boolean, optional, default: true) - True for approved, false for rejected
 
 ### search_approved_articles
+
 Search articles by text across headlines, publication names, article text, and notes.
 
 **Parameters**:
+
 - `search_text` (string, required) - Text to search for
 - `is_approved` (boolean, optional, default: true) - Filter by approval status
 - `limit` (integer, optional, default: 10) - Maximum results
 
 ### get_articles_by_user
+
 Get articles approved or reviewed by specific user.
 
 **Parameters**:
+
 - `user_id` (integer, required) - User ID
 - `is_approved` (boolean, optional, default: true) - Filter by approval status
 - `limit` (integer, optional, default: 10) - Maximum results
 
 ### get_articles_by_date_range
+
 Get articles within date range.
 
 **Parameters**:
+
 - `start_date` (string, optional) - Start date (YYYY-MM-DD format)
 - `end_date` (string, optional) - End date (YYYY-MM-DD format)
 - `is_approved` (boolean, optional, default: true) - Filter by approval status
 - `limit` (integer, optional, default: 10) - Maximum results
 
 ### get_article_by_id
+
 Get specific article by ArticleApproved ID.
 
 **Parameters**:
+
 - `article_approved_id` (integer, required) - Article ID
 
 ### list_approved_articles
+
 Get paginated list of articles.
 
 **Parameters**:
+
 - `is_approved` (boolean, optional, default: true) - Filter by approval status
 - `limit` (integer, optional, default: 10) - Maximum results
 - `offset` (integer, optional, default: 0) - Pagination offset
 
 ### execute_custom_sql
+
 Text-to-SQL fallback tool for questions not covered by pre-defined tools. Agent generates SQL query based on natural language question.
 
 **Parameters**:
+
 - `question` (string, required) - Natural language question
 
 **Security**:
+
 - Only SELECT queries allowed
 - Read-only database connection
 - Multi-layer validation (keyword blocklist, structural validation, complexity limits)
@@ -365,6 +445,7 @@ Text-to-SQL fallback tool for questions not covered by pre-defined tools. Agent 
 ### HTTP Errors
 
 **500 Internal Server Error**:
+
 ```json
 {
   "detail": "Internal server error"
@@ -374,14 +455,17 @@ Text-to-SQL fallback tool for questions not covered by pre-defined tools. Agent 
 ### WebSocket Errors
 
 **Authentication Failure** (Close code 4001):
+
 - Missing token
 - Invalid token signature
 - User not found in database
 
 **General Error** (Close code 4000):
+
 - Unexpected authentication error
 
 **Application Errors** (sent as message):
+
 ```json
 {
   "type": "error",
@@ -394,6 +478,7 @@ Text-to-SQL fallback tool for questions not covered by pre-defined tools. Agent 
 ## Rate Limiting
 
 Currently no rate limiting is implemented. Future versions may include:
+
 - Connection limits per user
 - Message rate limits
 - Token refresh requirements
@@ -409,6 +494,7 @@ CORS is enabled for all origins (`allow_origins: ["*"]`). In production, this sh
 ## Environment Variables
 
 Required environment variables:
+
 - `JWT_SECRET` - Shared secret for JWT verification (matches News Nexus API)
 - `PATH_TO_DATABASE` - Database directory path
 - `NAME_DB` - Database filename

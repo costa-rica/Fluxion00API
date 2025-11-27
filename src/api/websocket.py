@@ -112,6 +112,38 @@ class ConnectionManager:
         return len(self.active_connections)
 
 
+async def send_progress(
+    manager: ConnectionManager,
+    client_id: str,
+    stage: str,
+    message: str,
+    details: Dict = None
+):
+    """
+    Send progress update to client.
+
+    Args:
+        manager: Connection manager
+        client_id: Client identifier
+        stage: Progress stage (e.g., "processing", "tool_execution", "llm_call")
+        message: Human-readable progress message
+        details: Optional additional details
+    """
+    import time
+
+    progress_message = {
+        "type": "agent_progress",
+        "stage": stage,
+        "message": message,
+        "timestamp": time.time()
+    }
+
+    if details:
+        progress_message["details"] = details
+
+    await manager.send_message(client_id, progress_message)
+
+
 async def handle_chat_message(
     websocket: WebSocket,
     client_id: str,
@@ -173,15 +205,28 @@ async def handle_chat_message(
             "content": True
         })
 
+        # Create progress callback
+        async def progress_callback(stage: str, message: str, details: Dict = None):
+            await send_progress(manager, client_id, stage, message, details)
+
         try:
+            # Send initial progress update
+            await progress_callback(
+                "processing",
+                f"Processing {'SQL query' if use_sql_mode else 'message'}..."
+            )
+
             # Process message with agent (direct SQL or normal mode)
             if use_sql_mode:
-                response = await agent.process_sql_query(sql_query)
+                response = await agent.process_sql_query(sql_query, progress_callback)
             else:
-                response = await agent.process_message(content)
+                response = await agent.process_message(content, progress_callback)
 
             # Log agent response
             logger.info(f"[AGENT] {username} (client_id: {client_id}) | Response sent | Length: {len(response)} chars")
+
+            # Send completion progress update
+            await progress_callback("completed", "Response generated")
 
             # Send agent response
             await manager.send_message(client_id, {
