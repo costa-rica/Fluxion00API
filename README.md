@@ -44,6 +44,7 @@ Fluxion00API provides a unified backend for adaptive agents that can query datab
 ### High‑Level Architecture
 
 The system consists of a FastAPI backend with WebSocket chat endpoints, an agent layer that routes requests to tools, and a modular knowledge base that accesses databases and documents through interchangeable adapters.
+The FastAPI backend is served by Uvicorn, an ASGI server that enables high‑performance async execution and WebSocket support in both development and production environments.
 
 ### Tech Stack Summary
 
